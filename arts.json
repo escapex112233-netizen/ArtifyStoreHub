@@ -1,0 +1,20 @@
+[
+  {
+    "category": "AnimeArts",
+    "name": "test",
+    "price": 5,
+    "file": "/arts/AnimeArts/Feather5.png"
+  },
+  {
+    "category": "CarsArts",
+    "name": "Car Art",
+    "price": 5,
+    "file": "/arts/CarsArts/Feather5.png"
+  },
+  {
+    "category": "LoveHateFlex",
+    "name": "Love Flex",
+    "price": 5,
+    "file": "/arts/LoveHateFlex/Heart5.png"
+  }
+]
