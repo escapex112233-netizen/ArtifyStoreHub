@@ -8,25 +8,34 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// --- Root route for Render ---
+app.get("/", (req, res) => {
+  res.send("Artify Backend is Live ✅");
+});
+
 // --- Serve arts folder static ---
 app.use("/arts", express.static(path.join(process.cwd(), "arts")));
 
-// Load arts.json
+// --- Load arts.json ---
 const ARTS_FILE = path.join(process.cwd(), "arts.json");
 let artsData = [];
 if (fs.existsSync(ARTS_FILE)) {
-  artsData = JSON.parse(fs.readFileSync(ARTS_FILE, "utf8"));
+  try {
+    artsData = JSON.parse(fs.readFileSync(ARTS_FILE, "utf8"));
+  } catch (err) {
+    console.error("Error parsing arts.json:", err);
+  }
 }
 
 // --- Temporary download storage ---
 const tempLinks = {}; // { token: { file, expires } }
 
-// API: Get all arts
+// --- API: Get all arts ---
 app.get("/api/arts", (req, res) => {
   res.json(artsData);
 });
 
-// API: Generate temporary download link
+// --- API: Generate temporary download link ---
 app.post("/api/generate-link", (req, res) => {
   const { file } = req.body;
   if (!file) return res.status(400).json({ error: "File required" });
@@ -39,7 +48,7 @@ app.post("/api/generate-link", (req, res) => {
   res.json({ url: `/download/${token}`, expires });
 });
 
-// Route: Serve download
+// --- Route: Serve download ---
 app.get("/download/:token", (req, res) => {
   const { token } = req.params;
   const entry = tempLinks[token];
@@ -56,6 +65,6 @@ app.get("/download/:token", (req, res) => {
   res.download(filePath, path.basename(filePath));
 });
 
-// Start server
+// --- Start server ---
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Server running on ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
