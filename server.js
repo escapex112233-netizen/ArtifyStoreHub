@@ -1,70 +1,51 @@
-import express from "express";
 import fs from "fs";
 import path from "path";
-import crypto from "crypto";
+import express from "express";
 import cors from "cors";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- Root route for Render ---
-app.get("/", (req, res) => {
-  res.send("Artify Backend is Live ✅");
-});
-
-// --- Serve arts folder static ---
+// Serve static arts
 app.use("/arts", express.static(path.join(process.cwd(), "arts")));
 
-// --- Load arts.json ---
-const ARTS_FILE = path.join(process.cwd(), "arts.json");
-let artsData = [];
-if (fs.existsSync(ARTS_FILE)) {
-  try {
-    artsData = JSON.parse(fs.readFileSync(ARTS_FILE, "utf8"));
-  } catch (err) {
-    console.error("Error parsing arts.json:", err);
-  }
+// Util: Scan all .png in arts/{category}/
+function loadArtsData() {
+  const artsDir = path.join(process.cwd(), "arts");
+  const categories = fs.readdirSync(artsDir).filter(f =>
+    fs.statSync(path.join(artsDir, f)).isDirectory()
+  );
+  let arts = [];
+  categories.forEach(category => {
+    const catDir = path.join(artsDir, category);
+    fs.readdirSync(catDir).forEach(file => {
+      if (file.endsWith(".png")) {
+        // Example: Feather5.png
+        const match = file.match(/^(.+?)(\d+)\.png$/);
+        if (match) {
+          const name = match[1];
+          const price = Number(match[2]);
+          arts.push({
+            category,
+            name,
+            price,
+            file: `/arts/${category}/${file}`
+          });
+        }
+      }
+    });
+  });
+  return arts;
 }
 
-// --- Temporary download storage ---
-const tempLinks = {}; // { token: { file, expires } }
-
-// --- API: Get all arts ---
+// API: Always provides up-to-date arts info
 app.get("/api/arts", (req, res) => {
-  res.json(artsData);
+  const arts = loadArtsData();
+  res.json(arts);
 });
 
-// --- API: Generate temporary download link ---
-app.post("/api/generate-link", (req, res) => {
-  const { file } = req.body;
-  if (!file) return res.status(400).json({ error: "File required" });
+// ...rest of your routes...
 
-  const token = crypto.randomBytes(16).toString("hex");
-  const expires = Date.now() + 5 * 60 * 1000; // 5 minutes
-
-  tempLinks[token] = { file, expires };
-
-  res.json({ url: `/download/${token}`, expires });
-});
-
-// --- Route: Serve download ---
-app.get("/download/:token", (req, res) => {
-  const { token } = req.params;
-  const entry = tempLinks[token];
-
-  if (!entry) return res.status(404).send("Invalid or expired link");
-  if (Date.now() > entry.expires) {
-    delete tempLinks[token];
-    return res.status(410).send("Link expired");
-  }
-
-  const filePath = path.join(process.cwd(), entry.file.replace(/^\//, ""));
-  if (!fs.existsSync(filePath)) return res.status(404).send("File not found");
-
-  res.download(filePath, path.basename(filePath));
-});
-
-// --- Start server ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
