@@ -1,5 +1,6 @@
 #!/bin/bash
-cd /storage/emulated/0/ArtifyStoreHub/backend || exit
+cd
+cd ArtifyStoreHub-backend || exit
 MSG=${1:-"Update from Termux"}
 git add .
 git commit -m "$MSG"
